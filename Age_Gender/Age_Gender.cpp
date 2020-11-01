@@ -70,13 +70,13 @@ int main(int argc, char** argv)
     int padding = 20;
     while (waitKey(1) < 0) {
         // read frame
-        Mat frame= cv::imread("img.jpeg");
-        //cap.read(frame);
-        //if (frame.empty())
-        //{
-          //  waitKey();
-            //break;
-        //}
+        Mat frame; //= cv::imread("img.jpeg");
+        cap.read(frame);
+        if (frame.empty())
+        {
+            waitKey();
+            break;
+        }
 
         vector<vector<int>> bboxes;
         Mat frameFace;
