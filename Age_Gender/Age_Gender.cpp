@@ -1,4 +1,4 @@
-#include <opencv2/imgproc.hpp>
+﻿#include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/dnn.hpp>
 #include <tuple>
@@ -16,6 +16,7 @@ tuple<Mat, vector<vector<int>>> getFaceBox(Net net, Mat& frame, double conf_thre
     int frameWidth = frameOpenCVDNN.cols;
     double inScaleFactor = 1.0;
     Size size = Size(300, 300);
+    // std::vector<int> meanVal = {104, 117, 123};
     Scalar meanVal = Scalar(104, 117, 123);
 
     cv::Mat inputBlob;
@@ -52,31 +53,39 @@ int main(int argc, char** argv)
     string faceProto = "opencv_face_detector.pbtxt";
     string faceModel = "opencv_face_detector_uint8.pb";
 
+    string ageProto = "age_deploy.prototxt";
+    string ageModel = "age_net.caffemodel";
+
     string genderProto = "gender_deploy.prototxt";
     string genderModel = "gender_net.caffemodel";
 
     Scalar MODEL_MEAN_VALUES = Scalar(78.4263377603, 87.7689143744, 114.895847746);
+
+    vector<string> ageList = { "(0-2)", "(4-6)", "(8-12)", "(15-20)", "(25-32)",
+      "(38-43)", "(48-53)", "(60-100)" };
+
     vector<string> genderList = { "Male", "Female" };
 
     // Load Network
+    Net ageNet = readNet(ageModel, ageProto);
     Net genderNet = readNet(genderModel, genderProto);
     Net faceNet = readNet(faceModel, faceProto);
 
-    VideoCapture cap;
-    if (argc > 1)
-        cap.open(argv[1]);
-    else
-        cap.open(0);
+    //VideoCapture cap;
+    //if (argc > 1)
+      //  cap.open(argv[1]);
+    //else
+      //  cap.open(0);
     int padding = 20;
     while (waitKey(1) < 0) {
         // read frame
-        Mat frame; //= cv::imread("img.jpeg");
-        cap.read(frame);
-        if (frame.empty())
-        {
-            waitKey();
-            break;
-        }
+        Mat frame=cv::imread("image.jpeg");
+        //cap.read(frame);
+        //if (frame.empty())
+        //{
+          //  waitKey();
+            //break;s
+        //}
 
         vector<vector<int>> bboxes;
         Mat frameFace;
@@ -92,7 +101,6 @@ int main(int argc, char** argv)
 
             Mat blob;
             blob = blobFromImage(face, 1, Size(227, 227), MODEL_MEAN_VALUES, false);
-            
             genderNet.setInput(blob);
             // string gender_preds;
             vector<float> genderPreds = genderNet.forward();
@@ -102,7 +110,28 @@ int main(int argc, char** argv)
             int max_index_gender = std::distance(genderPreds.begin(), max_element(genderPreds.begin(), genderPreds.end()));
             string gender = genderList[max_index_gender];
             cout << "Gender: " << gender << endl;
-            string label = gender ; // label
+
+            /* // Uncomment if you want to iterate through the gender_preds vector
+            for(auto it=begin(gender_preds); it != end(gender_preds); ++it) {
+              cout << *it << endl;
+            }
+            */
+
+            ageNet.setInput(blob);
+            vector<float> agePreds = ageNet.forward();
+            /* // uncomment below code if you want to iterate through the age_preds
+             * vector
+            cout << "PRINTING AGE_PREDS" << endl;
+            for(auto it = age_preds.begin(); it != age_preds.end(); ++it) {
+              cout << *it << endl;
+            }
+            */
+
+            // finding maximum indicd in the age_preds vector
+            int max_indice_age = std::distance(agePreds.begin(), max_element(agePreds.begin(), agePreds.end()));
+            string age = ageList[max_indice_age];
+            cout << "Age: " << age << endl;
+            string label = gender + "," + age; // label
             cv::putText(frameFace, label, Point(it->at(0), it->at(1) - 15), cv::FONT_HERSHEY_SIMPLEX, 0.9, Scalar(0, 255, 255), 2, cv::LINE_AA);
             imshow("Frame", frameFace);
             imwrite("out.jpg", frameFace);
